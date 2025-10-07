@@ -19,6 +19,8 @@ You have been tasked with building an MVP tool where an analyst can provide the 
 
 You have been given a template as a starting point which performs a very simple web scrape and string comparison. You must flesh out this implementation to build a more effective tool.
 
+You can run the existing app by running `npm i` followed by `npm run dev`. If you add any additional steps e.g. required environment variables, please update these instructions.
+
 You should approach this task carefully as you want to maximise the number of articles that can be discarded before they reach the analyst but cannot allow false negatives.
 
 Since this is in a regulated context, you should also ensure that your output is explainable and auditable.
