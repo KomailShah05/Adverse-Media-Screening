@@ -46,6 +46,6 @@ It is up to you what tools you use to complete your solution. You may choose to 
 
 **NOTE: You are welcome to use AI tools to help build your solution (Cursor, Copilot etc.) but please ensure that you understand the code you have written and are able to justify the decisions that you made. If your solution is identical to what Claude Code produces when given this task you probably have not put enough thought into it. Aim to build something that you feel fairly represents your full stack skills and that you are proud of.**
 
-Once you have completed the task, please push to your classroom branch and notify us by emailing oli@arva.ai.
+Once you have completed the task, please push to your classroom branch and notify us by emailing oli@arva.ai. Please include your GitHub username in this email so we can match it up to your application!
 
 Have fun!
