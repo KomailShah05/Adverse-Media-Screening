@@ -1,11 +1,12 @@
 import { type Metadata } from "next";
 import "@mantine/core/styles.css";
+import "./globals.css";
 import { TRPCReactProvider } from "~/trpc/react";
 import { MantineProvider } from "@mantine/core";
 
 export const metadata: Metadata = {
-  title: "Screening Task",
-  description: "",
+  title: "Adverse Media Screening",
+  description: "Screen news articles for adverse media against a named individual.",
 };
 
 export default function RootLayout({
@@ -14,8 +15,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        {/* Skip link — allows keyboard users to jump past navigation to main content */}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <MantineProvider>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
+          <TRPCReactProvider>
+            <main id="main-content">{children}</main>
+          </TRPCReactProvider>
         </MantineProvider>
       </body>
     </html>
