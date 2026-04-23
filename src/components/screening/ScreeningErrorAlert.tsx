@@ -6,7 +6,7 @@ import { useFocusEffect } from "~/hooks/useFocusEffect";
 import { useScreeningContext } from "~/context/ScreeningContext";
 
 export const ScreeningErrorAlert = memo(() => {
-  const { errorMessage, setErrorMessage } = useScreeningContext();
+  const { errorMessage, clearError } = useScreeningContext();
 
   // Focuses this container when an error appears, restores prior focus when it clears
   const containerRef = useFocusEffect<HTMLDivElement>(!!errorMessage);
@@ -18,7 +18,7 @@ export const ScreeningErrorAlert = memo(() => {
       <Alert
         color="red"
         title="Screening failed"
-        onClose={() => setErrorMessage(null)}
+        onClose={clearError}
         withCloseButton
       >
         {errorMessage}

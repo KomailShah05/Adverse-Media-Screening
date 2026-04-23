@@ -1,4 +1,5 @@
 import type { ScreeningResult } from "~/types/screening";
+import { LLM_MODEL } from "~/lib/screening/config";
 
 export const buildAuditText = (
   result: ScreeningResult,
@@ -43,7 +44,7 @@ export const buildAuditText = (
           "",
         ]
       : []),
-    `Model        : gpt-4o`,
+    `Model        : ${LLM_MODEL}`,
     `Processing   : ${(result.processingTimeMs / 1000).toFixed(1)}s`,
   ];
 

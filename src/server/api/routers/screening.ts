@@ -5,6 +5,11 @@ import { unstable_cache } from "next/cache";
 import OpenAI from "openai";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { env } from "~/env";
+import { LLM_MODEL } from "~/lib/screening/config";
+
+// Module-level singleton — avoids re-instantiating the client on every request
+const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY as string });
 
 // ─── SSRF Protection ────────────────────────────────────────────────────────
 
@@ -296,14 +301,6 @@ const runLLMScreening = async (
   name: string,
   dateOfBirth: string | null,
 ): Promise<z.infer<typeof LLMOutputSchema>> => {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Screening service is not configured. OPENAI_API_KEY is missing.",
-    });
-  }
-  const client = new OpenAI({ apiKey });
 
   const userMessage = [
     `SUBJECT DETAILS:`,
@@ -321,8 +318,8 @@ const runLLMScreening = async (
 
   let response: OpenAI.Chat.ChatCompletion;
   try {
-    response = await client.chat.completions.create({
-      model: "gpt-4o",
+    response = await openai.chat.completions.create({
+      model: LLM_MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userMessage },
@@ -330,6 +327,9 @@ const runLLMScreening = async (
       tools: [SCREENING_TOOL],
       // Force the model to always call our tool — never return plain text
       tool_choice: { type: "function", function: { name: "submit_screening_result" } },
+      max_tokens: 2000,
+      // temperature: 0 for deterministic, auditable compliance results
+      temperature: 0,
     });
   } catch (err) {
     if (err instanceof OpenAI.APIError) {
@@ -428,7 +428,7 @@ export const screeningRouter = createTRPCRouter({
     .input(
       z.object({
         articleText: z.string().max(20_000),
-        articleTitle: z.string(),
+        articleTitle: z.string().max(500),
         name: z.string().min(2, "Name must be at least 2 characters.").max(100),
         dateOfBirth: z.string().optional(),
       }),

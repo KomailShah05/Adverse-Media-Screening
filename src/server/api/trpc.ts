@@ -10,14 +10,26 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-// In-memory rate limiter: max 10 requests per IP per minute
+// In-memory rate limiter: max 10 requests per IP per minute.
+// NOTE: IP is read from x-forwarded-for which is client-controlled without a
+// trusted proxy in front. This is a best-effort guard, not a security boundary.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 const RATE_LIMIT_MAX = 10;
 const RATE_LIMIT_WINDOW_MS = 60_000;
+// Prevent unbounded growth: purge all expired entries when map exceeds this size
+const RATE_LIMIT_CLEANUP_THRESHOLD = 5_000;
 
 const checkRateLimit = (ip: string): void => {
   const now = Date.now();
+
+  // Periodic cleanup to prevent the map growing indefinitely under many unique IPs
+  if (rateLimitMap.size > RATE_LIMIT_CLEANUP_THRESHOLD) {
+    for (const [key, val] of rateLimitMap) {
+      if (now > val.resetAt) rateLimitMap.delete(key);
+    }
+  }
+
   const entry = rateLimitMap.get(ip);
 
   if (!entry || now > entry.resetAt) {
@@ -121,8 +133,9 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
 
   const result = await next();
 
-  const end = Date.now();
-  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+  if (t._config.isDev) {
+    console.log(`[TRPC] ${path} took ${Date.now() - start}ms to execute`);
+  }
 
   return result;
 });

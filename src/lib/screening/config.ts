@@ -21,13 +21,13 @@ export const VERDICT_CONFIG = {
   },
 } as const;
 
-export const CONFIDENCE_COLORS: Record<string, string> = {
+export const CONFIDENCE_COLORS: Record<"HIGH" | "MEDIUM" | "LOW", string> = {
   HIGH: "blue",
   MEDIUM: "orange",
   LOW: "gray",
 };
 
-export const SENTIMENT_COLORS: Record<string, string> = {
+export const SENTIMENT_COLORS: Record<"POSITIVE" | "NEGATIVE" | "NEUTRAL", string> = {
   NEGATIVE: "red",
   POSITIVE: "green",
   NEUTRAL: "gray",

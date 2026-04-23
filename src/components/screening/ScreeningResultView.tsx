@@ -95,7 +95,7 @@ export const ScreeningResultView = memo(() => {
             Evidence Quotes
           </Text>
           {result.evidenceQuotes.map((quote, i) => (
-            <Blockquote key={i} color="blue" cite={`— Article, quote ${i + 1}`} p="sm">
+            <Blockquote key={quote} color="blue" cite={`— Article, quote ${i + 1}`} p="sm">
               {quote}
             </Blockquote>
           ))}

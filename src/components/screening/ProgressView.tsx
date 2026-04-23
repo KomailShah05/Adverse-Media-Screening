@@ -27,8 +27,8 @@ export const ProgressView = memo(({ steps }: { steps: ProgressStep[] }) => (
     <Text fw={600} size="sm">
       Running screening…
     </Text>
-    {steps.map((step, i) => (
-      <Group key={i} gap="xs" align="center">
+    {steps.map((step) => (
+      <Group key={step.label} gap="xs" align="center">
         <StepIcon status={step.status} />
         <Text
           size="sm"

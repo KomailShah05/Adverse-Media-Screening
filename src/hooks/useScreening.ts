@@ -195,11 +195,13 @@ export const useScreening = () => {
     [state.view],
   );
 
+  const clearError = useCallback(() => setErrorMessage(null), []);
+
   return useMemo(
     () => ({
       state,
       errorMessage,
-      setErrorMessage,
+      clearError,
       liveMessage,
       isInProgress,
       isAnalysisPending: analyseArticle.isPending,
@@ -211,6 +213,7 @@ export const useScreening = () => {
     [
       state,
       errorMessage,
+      clearError,
       liveMessage,
       isInProgress,
       analyseArticle.isPending,
