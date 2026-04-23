@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   description: "Screen news articles for adverse media against a named individual.",
 };
 
-export default function RootLayout({
+const RootLayout = ({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: Readonly<{ children: React.ReactNode }>): React.JSX.Element => {
   return (
     <html lang="en">
       <body>
@@ -27,4 +27,6 @@ export default function RootLayout({
       </body>
     </html>
   );
-}
+};
+
+export default RootLayout;

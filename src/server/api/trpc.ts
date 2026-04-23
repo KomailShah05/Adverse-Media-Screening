@@ -16,7 +16,7 @@ const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_MAX = 10;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 
-function checkRateLimit(ip: string): void {
+const checkRateLimit = (ip: string): void => {
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
 
@@ -33,7 +33,7 @@ function checkRateLimit(ip: string): void {
   }
 
   entry.count++;
-}
+};
 
 /**
  * 1. CONTEXT

@@ -13,7 +13,7 @@ const BLOCKED_HOSTNAMES =
   /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1|0\.0\.0\.0)/;
 const FETCH_TIMEOUT_MS = 10_000;
 
-function validateArticleUrl(raw: string): URL {
+const validateArticleUrl = (raw: string): URL => {
   let parsed: URL;
   try {
     parsed = new URL(raw);
@@ -46,7 +46,7 @@ type ArticleContent = {
   isPaywalled: boolean;
 };
 
-async function fetchArticleText(url: string): Promise<ArticleContent> {
+const fetchArticleText = async (url: string): Promise<ArticleContent> => {
   const validUrl = validateArticleUrl(url);
 
   const controller = new AbortController();
@@ -174,16 +174,17 @@ export type ScreeningResult = z.infer<typeof ScreeningResultSchema>;
 // Deterministic — derived from LLM output, never guessed by the model.
 // False negatives (missed adverse matches) are the worst outcome in compliance,
 // so we default to REVIEW whenever confidence is not HIGH.
-function deriveRecommendation(
+const deriveRecommendation = (
   isMatch: boolean,
   confidence: "HIGH" | "MEDIUM" | "LOW",
   sentiment: "POSITIVE" | "NEGATIVE" | "NEUTRAL" | null,
-): "DISCARD" | "REVIEW" | "ESCALATE" {
+): "DISCARD" | "REVIEW" | "ESCALATE" => {
   if (!isMatch && confidence === "HIGH") return "DISCARD";
   if (isMatch && sentiment === "NEGATIVE" && confidence !== "LOW") return "ESCALATE";
-  if (isMatch && sentiment !== "NEGATIVE" && confidence === "HIGH") return "DISCARD";
+  // Confirmed match with positive/neutral sentiment: still a match — analyst must verify.
+  // Silently discarding confirmed identities risks missing sanctions context.
   return "REVIEW";
-}
+};
 
 // ─── LLM Screening ───────────────────────────────────────────────────────────
 
@@ -289,12 +290,12 @@ const SCREENING_TOOL: OpenAI.Chat.ChatCompletionTool = {
   },
 };
 
-async function runLLMScreening(
+const runLLMScreening = async (
   articleText: string,
   articleTitle: string,
   name: string,
   dateOfBirth: string | null,
-): Promise<z.infer<typeof LLMOutputSchema>> {
+): Promise<z.infer<typeof LLMOutputSchema>> => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new TRPCError({
