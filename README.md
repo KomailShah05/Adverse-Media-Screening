@@ -49,3 +49,69 @@ It is up to you what tools you use to complete your solution. You may choose to 
 Once you have completed the task, please push to your classroom branch and notify us by emailing oli@arva.ai. Please include your GitHub username in this email so we can match it up to your application!
 
 Have fun!
+
+---
+
+## My Solution
+
+### Setup
+
+```bash
+npm install
+cp .env.example .env.local   # add your OPENAI_API_KEY
+npm run dev
+```
+
+### How it works
+
+Two-stage pipeline per screening request:
+
+1. **Scrape** — fetches the article URL server-side, strips markup with Cheerio, detects paywalls. If the article can't be extracted, the analyst can paste the text manually.
+2. **Analyse** — sends the extracted text + subject details to GPT-4o via OpenAI function calling, which returns structured JSON (match, confidence, sentiment, evidence quotes, identifying details).
+3. **Recommend** — a deterministic rule derives `DISCARD / REVIEW / ESCALATE` from the LLM output so the final verdict is always explainable and auditable.
+
+### Architecture
+
+| Layer | Tech | Notes |
+|-------|------|-------|
+| Framework | Next.js 15 App Router | Server + client components |
+| API | tRPC v11 | End-to-end type safety |
+| LLM | GPT-4o (OpenAI) | Function calling for structured output |
+| Validation | Zod | Separate schemas for LLM parsing vs tRPC output |
+| UI | Mantine v7 | Accessible component library |
+| State | React Context + custom hooks | `useScreening` state machine, `useFocusEffect` |
+
+### Key technical decisions
+
+**Security**
+- SSRF protection — blocks RFC-1918 ranges and enforces HTTPS-only URLs
+- In-memory rate limiting (10 req/min per IP) via tRPC middleware
+- Security headers — CSP, X-Frame-Options, Referrer-Policy
+
+**Reliability**
+- Article text cached 1 hr, screening results cached 24 hr (`unstable_cache`)
+- Zod validates every LLM response field — malformed output is rejected, not silently passed through
+- `isMountedRef` guard prevents state updates after component unmount
+- Mutation cleanup on unmount so in-flight callbacks can't fire on stale components
+
+**Frontend patterns**
+- `useTransition` wraps all state transitions (React 19)
+- `useDeferredValue` defers the result render to keep transitions responsive
+- `useFocusEffect` — custom hook that focuses a container when its view activates and restores the previous focus element when it deactivates (keyboard accessibility)
+- All components wrapped in `React.memo`, all handlers in `useCallback`, computed values in `useMemo`
+- Context API eliminates prop drilling; domain components consume context directly via `use()` (React 19)
+
+**Accessibility**
+- ARIA live region (`aria-live="assertive"`) announces every view transition to screen readers
+- Skip navigation link for keyboard users
+- Focus is managed on every state change — result, paywall, and error containers all receive focus automatically
+
+### Part 2 — Enrichment plan
+
+When key identifying details (DOB, occupation, nationality) are missing from an article, confidence drops and the case lands in `REVIEW`. The enrichment step would resolve this automatically:
+
+1. **Trigger** — after the initial screening, if `confidence !== "HIGH"` and one or more identifying fields are null, queue an enrichment job.
+2. **Web research** — run parallel searches against public sources (Wikipedia, LinkedIn public profiles, Companies House, sanctions lists) using GPT-4o with web search tools or a dedicated search API (Tavily / Brave Search).
+3. **Merge** — combine enriched details with the original article analysis and re-run `deriveRecommendation`. If the new details resolve the ambiguity, the case may upgrade from `REVIEW` to `DISCARD` or `ESCALATE` without analyst involvement.
+4. **Audit trail** — the audit summary would record which details were found via enrichment vs the original article, keeping the result fully explainable.
+5. **Implementation** — a second tRPC mutation (`enrichSubject`) called automatically after `analyseArticle` when enrichment is warranted, with its own 24 hr cache keyed on `name + dateOfBirth`.
