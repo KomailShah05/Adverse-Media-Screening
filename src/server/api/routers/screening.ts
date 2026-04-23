@@ -7,41 +7,15 @@ import OpenAI from "openai";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { env } from "~/env";
 import { LLM_MODEL } from "~/lib/screening/config";
+import { deriveRecommendation } from "~/lib/screening/recommendation";
+import { validateArticleUrl } from "~/lib/screening/url-validation";
 
 // Module-level singleton — avoids re-instantiating the client on every request
 const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY as string });
 
-// ─── SSRF Protection ────────────────────────────────────────────────────────
+// ─── Article Extraction ──────────────────────────────────────────────────────
 
-// Blocks RFC-1918 private ranges, loopback, and cloud metadata endpoints
-const BLOCKED_HOSTNAMES =
-  /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1|0\.0\.0\.0)/;
 const FETCH_TIMEOUT_MS = 10_000;
-
-const validateArticleUrl = (raw: string): URL => {
-  let parsed: URL;
-  try {
-    parsed = new URL(raw);
-  } catch {
-    throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid URL format." });
-  }
-
-  if (parsed.protocol !== "https:") {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Only HTTPS URLs are supported.",
-    });
-  }
-
-  if (BLOCKED_HOSTNAMES.test(parsed.hostname)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "URL points to a restricted network address.",
-    });
-  }
-
-  return parsed;
-}
 
 // ─── Article Extraction ──────────────────────────────────────────────────────
 
@@ -173,23 +147,6 @@ export const ScreeningResultSchema = z.object({
 });
 
 export type ScreeningResult = z.infer<typeof ScreeningResultSchema>;
-
-// ─── Recommendation Logic ────────────────────────────────────────────────────
-
-// Deterministic — derived from LLM output, never guessed by the model.
-// False negatives (missed adverse matches) are the worst outcome in compliance,
-// so we default to REVIEW whenever confidence is not HIGH.
-const deriveRecommendation = (
-  isMatch: boolean,
-  confidence: "HIGH" | "MEDIUM" | "LOW",
-  sentiment: "POSITIVE" | "NEGATIVE" | "NEUTRAL" | null,
-): "DISCARD" | "REVIEW" | "ESCALATE" => {
-  if (!isMatch && confidence === "HIGH") return "DISCARD";
-  if (isMatch && sentiment === "NEGATIVE" && confidence !== "LOW") return "ESCALATE";
-  // Confirmed match with positive/neutral sentiment: still a match — analyst must verify.
-  // Silently discarding confirmed identities risks missing sanctions context.
-  return "REVIEW";
-};
 
 // ─── LLM Screening ───────────────────────────────────────────────────────────
 
