@@ -7,6 +7,7 @@ import OpenAI from "openai";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { env } from "~/env";
 import { LLM_MODEL } from "~/lib/screening/config";
+import { applyDeterministicIdentityGuards } from "~/lib/screening/identity-guards";
 import { deriveRecommendation } from "~/lib/screening/recommendation";
 import { validateArticleUrl } from "~/lib/screening/url-validation";
 
@@ -402,14 +403,22 @@ export const screeningRouter = createTRPCRouter({
         dobString,
       );
 
+      const guardedResult = applyDeterministicIdentityGuards(
+        llmResult,
+        input.name,
+        dobString,
+        input.articleTitle,
+        input.articleText,
+      );
+
       const recommendation = deriveRecommendation(
-        llmResult.isMatch,
-        llmResult.confidence,
-        llmResult.sentiment,
+        guardedResult.isMatch,
+        guardedResult.confidence,
+        guardedResult.sentiment,
       );
 
       return {
-        ...llmResult,
+        ...guardedResult,
         recommendation,
         articleTitle: input.articleTitle,
         isPaywalled: false,
